@@ -1,10 +1,7 @@
-\name{GseaRcpp}
+\name{Gsea}
 \alias{Gsea}
 \title{Gsea}
 \description{
-Gsea creator function
-}
-\details{
 Gsea creator function
 }
 \usage{
@@ -15,11 +12,11 @@ Gsea creator function
     new(Gsea, expressionMatrix, geneSets, nThreads)
 }
 \arguments{
-  \item{sampleIds}{sample ids as a character vector of the expression matrix}
-  \item{geneIds}{gene ids as a character vector of the expression matrix}
-  \item{expressionMatrix}{expression matrix as numeric matrix, it has no null rownames and colnames}
-  \item{geneSets}{gene ids as a character vector of the expression matrix}
-  \item{nThreads}{number of threads used to run GSEA, 0 if all CPU threads want to be used}
+  \item{sampleIds}{Sample ids as a character vector of the expression matrix}
+  \item{geneIds}{Gene ids as a character vector of the expression matrix}
+  \item{expressionMatrix}{Expression matrix as numeric matrix, it has no null rownames and colnames}
+  \item{geneSets}{Gene sets as list}
+  \item{nThreads}{Number of threads used to run GSEA, 0 if all CPU threads want to be used}
 }
 \examples{
 
