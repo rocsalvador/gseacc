@@ -1,3 +1,6 @@
+/** @file gsea.cc
+ * @brief Gsea implementation file */
+
 #include "gsea.hh"
 #include <filesystem>
 #include <sstream>
@@ -438,18 +441,12 @@ void Gsea::enrichmentScore()
         t.join();
 }
 
-/**
- * @brief Runs the gsea from lineStart to lineEnd samples, assuming genes in the rows and samples in the columns
- * @param startSample start sample
- * @param endSample end sample
- * @pre expressionMatrix rows contain genes, expressionMatrix columns contain samples
- * @post The samples startSample to endSample in the results matrix contain the ES
- */
 void Gsea::enrichmentScoreJob(uint startSample, uint endSample)
 {
+    assert(endSample <= nSamples);
+
     sortColumnsJob(startSample, endSample);
 
-    assert(endSample < nSamples);
     auto threadId = this_thread::get_id();
     uint id = *static_cast<unsigned int *>(static_cast<void *>(&threadId));
     for (uint k = 0; k < geneSets.size(); ++k)
@@ -488,15 +485,10 @@ void Gsea::enrichmentScoreJob(uint startSample, uint endSample)
     }
 }
 
-/**
- * @brief Runs the gsea from startSample to endSample samples, assuming samples in the rows and genes in the columns
- * @param startSample start sample
- * @param endSample end sample
- * @pre expressionMatrix rows contain samples, expressionMatrix columns contain genes
- * @post The samples startSample to endSample in the results matrix contain the ES
- */
 void Gsea::scEnrichmentScoreJob(uint startSample, uint endSample)
 {
+    assert(endSample <= nSamples);
+
     auto threadId = this_thread::get_id();
     uint id = *static_cast<unsigned int *>(static_cast<void *>(&threadId));
     for (uint i = startSample; i < endSample; ++i)
@@ -579,6 +571,7 @@ void Gsea::runRna()
 
 void Gsea::run(string outFileName, uint ioutput)
 {
+    if (outFileName != "") this->outputFilename = outFileName;
     this->ioutput = ioutput;
 
     cout << "[GSEA input size]" << endl;
@@ -602,11 +595,6 @@ void Gsea::run(string outFileName, uint ioutput)
     cout << "Results written in " << outputFilename << endl;
 }
 
-/**
- * @brief Runs gsea for the given expression matrix using the gene sets initialised in the Gsea creator function
- * @param expressionMatrix matrix containing counts in the cells, samples in the rows and genes in the columns
- * @post The correspinding chunk file contains the ES score for each sample and gene set
- */
 void Gsea::runChunked(vector<vector<GeneSample>> &expressionMatrix)
 {
     if (currentSample == 0)
@@ -662,12 +650,6 @@ void Gsea::runChunked(vector<vector<GeneSample>> &expressionMatrix)
     cout << " Sample: " << currentSample << " ETA: " << ETA << " min" << endl;
 }
 
-/**
- * @brief Filter the chunked gsea results by selecting the nFilteredGeneSets gene sets with more variance across the samples
- * @param nFilteredGeneSets number of gene sets selected to be written in the filtered results file
- * @pre runChunked has been run at least one time
- * @post Filtered-results.csv contains the filtered results
- */
 void Gsea::filterResults(uint nFilteredGeneSets)
 {
     assert(nFilteredGeneSets < nGeneSets);

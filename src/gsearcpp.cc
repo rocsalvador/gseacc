@@ -1,4 +1,8 @@
+/** @file gsearcpp.cc
+ * @brief GseaRcpp implementation file */
+
 #include "gsearcpp.hh"
+
 
 GseaRcpp::GseaRcpp(CharacterVector sampleIdsRcpp,
                    CharacterVector geneIdsRcpp,

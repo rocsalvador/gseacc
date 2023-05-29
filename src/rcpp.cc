@@ -1,3 +1,6 @@
+/** @file rcpp.cc
+ * @brief Rcpp exports file */
+
 #include <Rcpp.h>
 #include <fstream>
 #include <iostream>
@@ -5,23 +8,30 @@
 #include <string>
 #include <vector>
 #include <unordered_set>
-#include "Rcpp/vector/instantiation.h"
 #include "gsea.hh"
 #include "gsearcpp.hh"
 using namespace Rcpp;
 using namespace std;
 
+RCPP_EXPOSED_CLASS(GseaRcpp)
 RCPP_MODULE(GseaModule) {
-    class_<GseaRcpp>("GseaRcpp")
+    class_<GseaRcpp>("Gsea")
     .constructor<CharacterVector, CharacterVector, List, uint>()
     .constructor<NumericMatrix, List, uint>()
-    .method("runChunked", &GseaRcpp::runChunked)
+    .method("runChunked", &GseaRcpp::runChunked, "Run GSEA for the expression matrix chunk")
     .method("filterResults", &GseaRcpp::filterResults)
     .method("run", &GseaRcpp::run)
     .method("normalizeExprMatrix", &GseaRcpp::normalizeExprMatrix)
     ;
 }
 
+
+/** @brief Write the gene sets list into fileName file, each line has as a first element the gene set id and then gene ids of the gene set
+* @param geneSetsRcpp list that has a gene set in every elemnt
+* @param fileName output file name
+* @pre fileName is not a null string
+* @post Gene sets written into fileName file
+*/
 // [[Rcpp::export]]
 void writeGeneSets(List geneSetsRcpp, String fileName)
 {
@@ -44,6 +54,12 @@ void writeGeneSets(List geneSetsRcpp, String fileName)
     }
 }
 
+/**
+ * @brief Read the gene sets list from the fileName file, each line has as a first element the gene set id and then gene ids of the gene set
+ * @param fileName input file name
+ * @pre fileName is a valid gene sets file
+ * @post Return the gene sets as a list of lists
+ */
 // [[Rcpp::export]]
 List readGeneSets(std::string fileName)
 {
@@ -72,6 +88,15 @@ List readGeneSets(std::string fileName)
     return geneSets;
 }
 
+/**
+ * @brief Read a csv file as a numeric matrix
+ * @param fileName input file name
+ * @param sep Csv element separator, default: sep = ','
+ * @param hasRowNames true if the csv has row names, false otherwise
+ * @param hasColNames true if the csv has column names, false otherwise
+ * @pre fileName is a valid csv file
+ * @post Return the csv file as a numeric matrix
+ */
 // [[Rcpp::export]]
 NumericMatrix readCsv(String fileName, char sep = ',', bool hasRowNames = true, bool hasColNames = true) {
     ifstream file(fileName);
@@ -93,7 +118,8 @@ NumericMatrix readCsv(String fileName, char sep = ',', bool hasRowNames = true, 
         ++nRows;
     }
 
-    if (hasRowNames) --nRows;
+    if (hasColNames) --nRows;
+    if (hasRowNames) --nCols;
 
     file.clear();
     file.seekg(0, ios::beg);
