@@ -102,7 +102,6 @@ NumericMatrix readCsv(String fileName, char sep = ',', bool hasRowNames = true, 
     ifstream file(fileName);
     string line;
 
-
     uint nCols = 0;
     uint nRows = 0;
     bool first = true;
@@ -119,7 +118,6 @@ NumericMatrix readCsv(String fileName, char sep = ',', bool hasRowNames = true, 
     }
 
     if (hasColNames) --nRows;
-    if (hasRowNames) --nCols;
 
     file.clear();
     file.seekg(0, ios::beg);
