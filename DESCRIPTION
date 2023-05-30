@@ -6,6 +6,7 @@ Date: 2023-05-29
 Author: Roc Salvador
 Maintainer: Roc Salvador <rocs@stud.ntnu.no>
 Description:
+Details: To access documentation use: ?Gsea ?filterResults
 License: GPL (>= 2)
 Imports: Rcpp (>= 1.0.10)
 LinkingTo: Rcpp
