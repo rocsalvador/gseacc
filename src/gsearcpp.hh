@@ -53,7 +53,7 @@ public:
     * @post filtered-results.csv contains the filtered results
     */
 
-    void filterResults(uint nFilteredGeneSets);
+    void filterResults(uint nFilteredGeneSets, string chunksPath, string outFilename);
 
     /**
     * @brief Runs GSEA for the given expression matrix and gene sets in the Gsea creator function

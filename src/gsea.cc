@@ -2,6 +2,8 @@
  * @brief Gsea implementation file */
 
 #include "gsea.hh"
+#include <bits/chrono.h>
+#include <chrono>
 #include <filesystem>
 #include <sstream>
 #include <string>
@@ -479,7 +481,7 @@ void Gsea::enrichmentScoreJob(uint startSample, uint endSample)
             printTime(now);
             cout << " Gene set " << k;
 
-            uint ETA = (geneSets.size() - k) * duration_cast<milliseconds>(now - startGSEATime).count() / (k * 60 * 1000);
+            ulong ETA = (geneSets.size() - k) * duration_cast<milliseconds>(now - startGSEATime).count() / (k * 60 * 1000);
             cout << " ETA: " << ETA << " min" << endl;
         }
     }
@@ -627,9 +629,18 @@ void Gsea::runChunked(vector<vector<GeneSample>> &expressionMatrix)
     for (thread &t : threads)
         t.join();
 
+    if (chunk == 0) {
+        filesystem::path tmpPath = filesystem::temp_directory_path();
+        ulong id = duration_cast<seconds>(startGSEATime.time_since_epoch()).count();
+        filesystem::path chunksFolder = filesystem::path("chunks" + to_string(id));
+        chunksPath = tmpPath / chunksFolder;
+        if (not filesystem::exists(chunksPath)) filesystem::create_directory(chunksPath);
+        cout << "Chunks path: " << chunksPath << endl << endl;
+    }
 
-    if (not filesystem::exists("chunks")) filesystem::create_directory("chunks");
-    ofstream resultsFile("chunks/" + to_string(chunk));
+    filesystem::path chunkFile = filesystem::path(to_string(chunk));
+    filesystem::path chunkPath = chunksPath / chunkFile;
+    ofstream resultsFile(chunkPath);
     for (uint k = 0; k < nGeneSets; ++k)
     {
         for (uint i = 0; i < chunkSamples; ++i)
@@ -646,19 +657,21 @@ void Gsea::runChunked(vector<vector<GeneSample>> &expressionMatrix)
     printTime(now);
     currentSample += chunkSamples;
     ++chunk;
-    uint ETA = (nSamples - currentSample) * duration_cast<milliseconds>(now - startGSEATime).count() / (currentSample * 60 * 1000);
+    ulong ETA = (nSamples - currentSample) * duration_cast<milliseconds>(now - startGSEATime).count() / (currentSample * 60 * 1000);
     cout << " Sample: " << currentSample << " ETA: " << ETA << " min" << endl;
 }
 
-void Gsea::filterResults(uint nFilteredGeneSets)
+void Gsea::filterResults(uint nFilteredGeneSets, string chunksPathStr, string outFileName)
 {
     assert(nFilteredGeneSets < nGeneSets);
     vector<GeneSetPtr> geneSetsVar = vector<GeneSetPtr>(nGeneSets);
     string line;
 
+    if (chunksPathStr != "") chunksPath = filesystem::path(chunksPathStr);
+
     uint nChunks = 0;
-    if (filesystem::exists("chunks"))
-        nChunks = (std::size_t)std::distance(std::filesystem::directory_iterator{"chunks"}, std::filesystem::directory_iterator{});
+    if (filesystem::exists(chunksPath))
+        nChunks = (std::size_t)std::distance(std::filesystem::directory_iterator{chunksPath}, std::filesystem::directory_iterator{});
 
     if (nChunks == 0) {
         cerr << "No chunk files found in chunks/ directory" << endl;
@@ -666,7 +679,11 @@ void Gsea::filterResults(uint nFilteredGeneSets)
     }
 
     vector<ifstream> chunkFiles = vector<ifstream> (nChunks);
-    for (uint i = 0; i < nChunks; ++i) chunkFiles[i].open("chunks/" + to_string(i));
+    for (uint i = 0; i < nChunks; ++i) {
+        filesystem::path chunkFile = filesystem::path(to_string(i));
+        filesystem::path chunkPath = chunksPath / chunkFile;
+        chunkFiles[i].open(chunkPath);
+    }
 
     for (uint i = 0; i < nGeneSets; ++i) {
         float mean = 0;
@@ -702,7 +719,7 @@ void Gsea::filterResults(uint nFilteredGeneSets)
     for (uint i = 0; i < nFilteredGeneSets; ++i)
         filteredSets.insert(geneSets[geneSetsVar[i].geneSetPtr].geneSetId);
 
-    ofstream filteredResultsFile("filtered-results.csv");
+    ofstream filteredResultsFile(outFileName);
     for (uint i = 0; i < nSamples; ++i)
     {
         if (i != 0)

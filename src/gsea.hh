@@ -21,18 +21,24 @@
 using namespace std;
 using namespace chrono;
 
+/** @struct GseaSample
+ * @brief  */
 struct GeneSample
 {
     uint32_t geneId;
     float count;
 };
 
+/** @struct GseaSet
+ * @brief  */
 struct GeneSet
 {
     string geneSetId;
     unordered_set<string> geneSet;
 };
 
+/** @struct GseaSetPtr
+ * @brief  */
 struct GeneSetPtr
 {
     uint geneSetPtr;
@@ -53,6 +59,7 @@ private:
     uint ioutput;
     uint batchSize;
     uint chunk;
+    filesystem::path chunksPath;
 
     uint nThreads;
     uint logThread;
@@ -180,7 +187,7 @@ public:
     * @pre runChunked has been run at least one time
     * @post Filtered-results.csv contains the filtered results
     */
-    void filterResults(uint nFilteredGeneSets);
+    void filterResults(uint nFilteredGeneSets, string chunksPath, string outFilenName);
 
     /**
     * @brief Normalize the expression matrix using rpm and centering the samples

@@ -74,9 +74,9 @@ void GseaRcpp::runChunked(const NumericMatrix &countMatrixRcpp)
     gsea->runChunked(expressionMatrix);
 }
 
-void GseaRcpp::filterResults(uint nFilteredGeneSets)
+void GseaRcpp::filterResults(uint nFilteredGeneSets, string chunksPath, string outFileName)
 {
-    gsea->filterResults(nFilteredGeneSets);
+    gsea->filterResults(nFilteredGeneSets, chunksPath, outFileName);
 }
 
 void GseaRcpp::run(string outFileName, uint ioutput)
