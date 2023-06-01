@@ -22,7 +22,7 @@ using namespace std;
 using namespace chrono;
 
 /** @struct GseaSample
- * @brief  */
+ * @brief Gene count with a pointer to the position of the gene id in Gsea::geneIds */
 struct GeneSample
 {
     uint32_t geneId;
@@ -30,7 +30,7 @@ struct GeneSample
 };
 
 /** @struct GseaSet
- * @brief  */
+ * @brief Gene set struct containing the gene set id and its genes in a set */
 struct GeneSet
 {
     string geneSetId;
@@ -38,7 +38,7 @@ struct GeneSet
 };
 
 /** @struct GseaSetPtr
- * @brief  */
+ * @brief Gene set variance value with a pointer to the position of the gene set in Gsea::geneSets */
 struct GeneSetPtr
 {
     uint geneSetPtr;
@@ -46,10 +46,11 @@ struct GeneSetPtr
 };
 
 /** @class Gsea
- * @brief  */
+ * @brief Runs Gsea indepentdently of Rcpp  */
 class Gsea
 {
 private:
+    // gsea.config variables
     string expressionMatrixFilename;
     string geneSetsFilename;
     string outputFilename;
@@ -59,32 +60,55 @@ private:
     uint ioutput;
     uint batchSize;
     uint chunk;
-    filesystem::path chunksPath;
-
     uint nThreads;
-    uint logThread;
-
     bool normalizedData;
     bool scRna;
 
-    uint currentSample;
+    /// Thread in charge of printing the status
+    uint logThread;
 
+    /// Variable to keep track of the current sample while running runChunked()
+    uint currentSample;
+    /// Path to the folder where chunks are saved
+    filesystem::path chunksPath;
+
+    /// Array containing the gene sets
     vector<GeneSet> geneSets;
 
+    /// Matrix containing the gene counts
     vector<vector<GeneSample>> expressionMatrix;
+    /// Array containing sample ids
     vector<string> sampleIds;
+    /// Array containing gene ids
     vector<string> geneIds;
 
+    /// Matrix containing GSEA results
     vector<vector<float>> results;
 
+    /// Number of genes in the expression matrix
     uint nGenes;
+    /// Number of samples in the expression matrix
     uint nSamples;
+    /// Number of gene sets in the gene sets
     uint nGeneSets;
 
+    /// Time point when GSEA was started
     system_clock::time_point startGSEATime;
 
+    /**
+    * @brief GeneSample comparator function to sort gene samples in decreasing order
+    * @param g1 first GeneSample
+    * @param g2 second GeneSample
+    * @return True if g1.count is bigger than g2.count, false otherwise
+    */
     static bool geneSampleComp(const GeneSample &g1, const GeneSample &g2);
 
+    /**
+    * @brief GeneSetPtr comparator function to sort gene samples in decreasing order
+    * @param g1 first GeneSetPtr
+    * @param g2 second GeneSetPtr
+    * @return True if g1.value is bigger than g2.value, false otherwise
+    */
     static bool geneSetPtrComp(const GeneSetPtr &g1, const GeneSetPtr &g2);
 
     void readRna();
@@ -95,14 +119,31 @@ private:
 
     void runRna();
 
+    /**
+    * @brief Reads the gsea.config file
+    * @post All configuration variables are set up
+    */
     void readConfig();
 
+    /**
+    * @brief Rpm the expression matrix
+    * @post Each expression matrix row sums 1 million
+    */
     void rpm();
 
+    /**
+    * @brief Mean center the expression matrix
+    * @post The expression matrix is mean centered rowwise
+    */
     void meanCenter();
 
     void sortColumnsJob(uint columnStart, uint columnEnd);
 
+    /**
+    * @brief Runs the gsea for all the expression matrix, dividing it in nThreads
+    * @pre expressionMatrix rows contain genes, expressionMatrix columns contain samples
+    * @post The samples in the results matrix contain the ES
+    */
     void enrichmentScore();
 
     /**
@@ -112,9 +153,6 @@ private:
     * @pre expressionMatrix rows contain genes, expressionMatrix columns contain samples
     * @post The samples startSample to endSample in the results matrix contain the ES
     */
-    //' @name Double$new
-    //' @title Constructs a new Double object
-    //' @param v A value to encapsulate
     void enrichmentScoreJob(uint sampleStart, uint sampleEnd);
 
     /**
@@ -126,13 +164,17 @@ private:
     */
     void scEnrichmentScoreJob(uint sampleStart, uint sampleEnd);
 
+    /**
+    * @brief Writes the results into outputFilename
+    * @post Results are written into outputFilenName
+    */
     void writeResults();
 
 public:
     /**
     * @brief Gsea creator function to use the class without R, it reads the configuration from
     * gsea.config, and all input data from files
-    * @post Gene sets and the expression matix (only in Rna-seq case) are initialised
+    * @post Gene sets and the expression matix are initialised
     */
     Gsea();
 
@@ -184,8 +226,10 @@ public:
     /**
     * @brief Filter the chunked GSEA results by selecting the nFilteredGeneSets gene sets with more variance across the samples
     * @param nFilteredGeneSets number of gene sets selected to be written in the filtered results file
+    * @param chunksPath path where the chunks are stored, "" if chunks where generated in the same session with runChunked()
+    * @param outFileName name of the filtered results file
     * @pre runChunked has been run at least one time
-    * @post Filtered-results.csv contains the filtered results
+    * @post outFileName contains the filtered results
     */
     void filterResults(uint nFilteredGeneSets, string chunksPath, string outFilenName);
 

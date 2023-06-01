@@ -10,10 +10,4 @@ As main features:
 - Mutithreading
 
 - Low RAM usage
-
-To access the rest of the documentation:
-
-- ?Gsea
-
-- ?filterResults
 }

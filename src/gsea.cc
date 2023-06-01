@@ -18,6 +18,69 @@ void printTime(system_clock::time_point timePoint)
     cout << "[" << timeString << "]";
 }
 
+Gsea::Gsea()
+{
+    system_clock::time_point startIOTime = system_clock::now();
+
+    readConfig();
+
+    if (!scRna)
+        readRna();
+    else
+        readScRna();
+
+    system_clock::time_point endIOTime = system_clock::now();
+    cout << "IO elapsed time: " << duration_cast<milliseconds>(endIOTime - startIOTime).count() / 1000.0 << " s" << endl;
+}
+
+Gsea::Gsea(vector<string> &sampleIds,
+           vector<string> &geneIds,
+           vector<GeneSet> &geneSets,
+           uint nThreads)
+{
+    currentSample = 0;
+    chunk = 0;
+
+    if (nThreads == 0)
+        this->nThreads = thread::hardware_concurrency();
+    else
+        this->nThreads = nThreads;
+    this->geneIds = geneIds;
+    this->sampleIds = sampleIds;
+    this->geneSets = geneSets;
+
+    nGenes = geneIds.size();
+    nSamples = sampleIds.size();
+    nGeneSets = geneSets.size();
+
+    cout << "[GSEA input size]" << endl;
+    cout << "Sampled genes: " << nGenes << endl;
+    cout << "Samples:       " << nSamples << endl;
+    cout << "Gene sets:     " << geneSets.size() << endl;
+    cout << endl;
+}
+
+Gsea::Gsea(vector<GeneSet> &geneSets,
+           vector<vector<GeneSample>> &expressionMatrix,
+           vector<string> &geneIds,
+           vector<string> &sampleIds,
+           uint threads,
+           bool scRna)
+{
+    this->geneSets = geneSets;
+    this->expressionMatrix = expressionMatrix;
+    nGenes = geneIds.size();
+    nSamples = sampleIds.size();
+    this->sampleIds = sampleIds;
+    this->geneIds = geneIds;
+    if (nThreads == 0)
+        this->nThreads = thread::hardware_concurrency();
+    else
+        this->nThreads = threads;
+    this->scRna = scRna;
+    results = vector<vector<float>>(geneSets.size(), vector<float>(nSamples));
+}
+
 void Gsea::readConfig()
 {
     ifstream file("./gsea.config");
@@ -87,21 +150,6 @@ void Gsea::readConfig()
     cout << endl;
 
     file.close();
-}
-
-Gsea::Gsea()
-{
-    system_clock::time_point startIOTime = system_clock::now();
-
-    readConfig();
-
-    if (!scRna)
-        readRna();
-    else
-        readScRna();
-
-    system_clock::time_point endIOTime = system_clock::now();
-    cout << "IO elapsed time: " << duration_cast<milliseconds>(endIOTime - startIOTime).count() / 1000.0 << " s" << endl;
 }
 
 void Gsea::readRna()
@@ -318,54 +366,6 @@ void Gsea::runScRna()
     }
 
     file.close();
-}
-
-Gsea::Gsea(vector<string> &sampleIds,
-           vector<string> &geneIds,
-           vector<GeneSet> &geneSets,
-           uint nThreads)
-{
-    currentSample = 0;
-    chunk = 0;
-
-    if (nThreads == 0)
-        this->nThreads = thread::hardware_concurrency();
-    else
-        this->nThreads = nThreads;
-    this->geneIds = geneIds;
-    this->sampleIds = sampleIds;
-    this->geneSets = geneSets;
-
-    nGenes = geneIds.size();
-    nSamples = sampleIds.size();
-    nGeneSets = geneSets.size();
-
-    cout << "[GSEA input size]" << endl;
-    cout << "Sampled genes: " << nGenes << endl;
-    cout << "Samples:       " << nSamples << endl;
-    cout << "Gene sets:     " << geneSets.size() << endl;
-    cout << endl;
-}
-
-Gsea::Gsea(vector<GeneSet> &geneSets,
-           vector<vector<GeneSample>> &expressionMatrix,
-           vector<string> &geneIds,
-           vector<string> &sampleIds,
-           uint threads,
-           bool scRna)
-{
-    this->geneSets = geneSets;
-    this->expressionMatrix = expressionMatrix;
-    nGenes = geneIds.size();
-    nSamples = sampleIds.size();
-    this->sampleIds = sampleIds;
-    this->geneIds = geneIds;
-    if (nThreads == 0)
-        this->nThreads = thread::hardware_concurrency();
-    else
-        this->nThreads = threads;
-    this->scRna = scRna;
-    results = vector<vector<float>>(geneSets.size(), vector<float>(nSamples));
 }
 
 void Gsea::rpm()

@@ -18,7 +18,7 @@ RCPP_MODULE(GseaModule) {
     class_<GseaRcpp>("Gsea")
     .constructor<CharacterVector, CharacterVector, List, uint>()
     .constructor<NumericMatrix, List, uint>()
-    .method("runChunked", &GseaRcpp::runChunked, "Run GSEA for the expression matrix chunk")
+    .method("runChunked", &GseaRcpp::runChunked)
     .method("filterResults", &GseaRcpp::filterResults)
     .method("run", &GseaRcpp::run)
     .method("normalizeExprMatrix", &GseaRcpp::normalizeExprMatrix)

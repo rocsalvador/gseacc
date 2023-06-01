@@ -49,10 +49,10 @@ public:
     /**
     * @brief Filter the chunked GSEA results by selecting the nFilteredGeneSets gene sets with more variance across the samples
     * @param nFilteredGeneSets number of gene sets selected to be written in the filtered results file
-    * @pre runChunked has been run at least one time
+    * @param chunksPath path where the chunks are stored, "" if chunks where generated in the same session with runChunked()
+    * @param outFileName name of the filtered results file
     * @post filtered-results.csv contains the filtered results
     */
-
     void filterResults(uint nFilteredGeneSets, string chunksPath, string outFilename);
 
     /**

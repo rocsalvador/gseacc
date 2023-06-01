@@ -2,7 +2,17 @@
 \alias{Gsea}
 \title{Gsea}
 \description{
-Gsea creator function
+Gsea creator function.
+
+Class methods:
+
+- \code{?run}
+
+- \code{?runChunked}
+
+- \code{?filterResults}
+
+- \code{?normalizeExprMatrix}
 }
 \usage{
     # Create Gsea class to run gsea$runChunked()
