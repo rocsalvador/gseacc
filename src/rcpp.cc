@@ -100,6 +100,10 @@ List readGeneSets(std::string fileName)
 // [[Rcpp::export]]
 NumericMatrix readCsv(String fileName, char sep = ',', bool hasRowNames = true, bool hasColNames = true) {
     ifstream file(fileName);
+    if (not file.is_open()) {
+        cerr << "[ERROR] " << string(fileName) << " does not exist" << endl;
+        exit(EXIT_FAILURE);
+    }
     string line;
 
     uint nCols = 0;
@@ -118,6 +122,7 @@ NumericMatrix readCsv(String fileName, char sep = ',', bool hasRowNames = true, 
     }
 
     if (hasColNames) --nRows;
+    if (hasRowNames and not hasColNames) --nCols;
 
     file.clear();
     file.seekg(0, ios::beg);

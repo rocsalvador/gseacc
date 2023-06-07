@@ -5,6 +5,7 @@
 #include <bits/chrono.h>
 #include <chrono>
 #include <filesystem>
+#include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -47,11 +48,24 @@ Gsea::Gsea(vector<string> &sampleIds,
         this->nThreads = nThreads;
     this->geneIds = geneIds;
     this->sampleIds = sampleIds;
-    this->geneSets = geneSets;
 
     nGenes = geneIds.size();
     nSamples = sampleIds.size();
     nGeneSets = geneSets.size();
+
+    for (uint k = 0; k < nGeneSets; ++k)
+    {
+        bool hit = false;
+        for (uint i = 0; i < nGenes and not hit; ++i)
+        {
+            if (geneSets[k].geneSet.find(geneIds[i]) != geneSets[k].geneSet.end())
+                hit = true;
+        }
+        if (hit)
+            this->geneSets.push_back(geneSets[k]);
+    }
+
+    nGeneSets = this->geneSets.size();
 
     cout << "[GSEA input size]" << endl;
     cout << "Sampled genes: " << nGenes << endl;
@@ -71,6 +85,7 @@ Gsea::Gsea(vector<GeneSet> &geneSets,
     this->expressionMatrix = expressionMatrix;
     nGenes = geneIds.size();
     nSamples = sampleIds.size();
+    nGeneSets = geneSets.size();
     this->sampleIds = sampleIds;
     this->geneIds = geneIds;
     if (nThreads == 0)
@@ -78,6 +93,7 @@ Gsea::Gsea(vector<GeneSet> &geneSets,
     else
         this->nThreads = threads;
     this->scRna = scRna;
+    this->outputSep = ',';
     results = vector<vector<float>>(geneSets.size(), vector<float>(nSamples));
 }
 
@@ -451,7 +467,8 @@ void Gsea::enrichmentScoreJob(uint startSample, uint endSample)
 
     auto threadId = this_thread::get_id();
     uint id = *static_cast<unsigned int *>(static_cast<void *>(&threadId));
-    for (uint k = 0; k < geneSets.size(); ++k)
+
+    for (uint k = 0; k < nGeneSets; ++k)
     {
         float geneSetSize = geneSets[k].geneSet.size();
         float posScore = sqrt((nGenes - geneSetSize) / geneSetSize);
@@ -491,8 +508,6 @@ void Gsea::scEnrichmentScoreJob(uint startSample, uint endSample)
 {
     assert(endSample <= nSamples);
 
-    auto threadId = this_thread::get_id();
-    uint id = *static_cast<unsigned int *>(static_cast<void *>(&threadId));
     for (uint i = startSample; i < endSample; ++i)
     {
         sort(expressionMatrix[i].begin(), expressionMatrix[i].end(), &Gsea::geneSampleComp);
@@ -502,9 +517,9 @@ void Gsea::scEnrichmentScoreJob(uint startSample, uint endSample)
     {
         for (uint k = 0; k < nGeneSets; ++k)
         {
-            uint geneSetSize = geneSets[k].geneSet.size();
-            float posScore = sqrt((nGenes - geneSetSize) / float(geneSetSize));
-            float negScore = -1 * sqrt((geneSetSize / float(nGenes - geneSetSize)));
+            float geneSetSize = geneSets[k].geneSet.size();
+            float posScore = sqrt((nGenes - geneSetSize) / geneSetSize);
+            float negScore = -sqrt((geneSetSize / (nGenes - geneSetSize)));
             float currentValue = 0;
             float maxValue = 0;
             for (uint j = 0; j < nGenes; ++j)
@@ -573,8 +588,11 @@ void Gsea::runRna()
 
 void Gsea::run(string outFileName, uint ioutput)
 {
-    if (outFileName != "") this->outputFilename = outFileName;
-    this->ioutput = ioutput;
+    if (outFileName != "")
+        this->outputFilename = outFileName;
+    
+    if (ioutput != 10)
+        this->ioutput = ioutput;
 
     cout << "[GSEA input size]" << endl;
     cout << "Sampled genes: " << nGenes << endl;
@@ -607,6 +625,21 @@ void Gsea::runChunked(vector<vector<GeneSample>> &expressionMatrix)
         nGenes = expressionMatrix[0].size();
     this->expressionMatrix = expressionMatrix;
 
+    if (chunk == 0)
+    {
+        filesystem::path tmpPath = filesystem::temp_directory_path();
+        ulong id = duration_cast<seconds>(startGSEATime.time_since_epoch()).count();
+        filesystem::path chunksFolder = filesystem::path("chunks" + to_string(id));
+        chunksPath = tmpPath / chunksFolder;
+        if (not filesystem::exists(chunksPath))
+            filesystem::create_directory(chunksPath);
+        cout << "Chunks path: " << chunksPath << endl
+             << endl;
+
+        printTime(system_clock::now());
+        cout << " Started GSEA" << endl;
+    }
+
     vector<thread> threads = vector<thread>(nThreads);
     uint samplesPerThread = chunkSamples / nThreads;
     uint offset = chunkSamples % nThreads;
@@ -628,15 +661,6 @@ void Gsea::runChunked(vector<vector<GeneSample>> &expressionMatrix)
 
     for (thread &t : threads)
         t.join();
-
-    if (chunk == 0) {
-        filesystem::path tmpPath = filesystem::temp_directory_path();
-        ulong id = duration_cast<seconds>(startGSEATime.time_since_epoch()).count();
-        filesystem::path chunksFolder = filesystem::path("chunks" + to_string(id));
-        chunksPath = tmpPath / chunksFolder;
-        if (not filesystem::exists(chunksPath)) filesystem::create_directory(chunksPath);
-        cout << "Chunks path: " << chunksPath << endl << endl;
-    }
 
     filesystem::path chunkFile = filesystem::path(to_string(chunk));
     filesystem::path chunkPath = chunksPath / chunkFile;
@@ -667,29 +691,34 @@ void Gsea::filterResults(uint nFilteredGeneSets, string chunksPathStr, string ou
     vector<GeneSetPtr> geneSetsVar = vector<GeneSetPtr>(nGeneSets);
     string line;
 
-    if (chunksPathStr != "") chunksPath = filesystem::path(chunksPathStr);
+    if (chunksPathStr != "")
+        chunksPath = filesystem::path(chunksPathStr);
 
     uint nChunks = 0;
     if (filesystem::exists(chunksPath))
         nChunks = (std::size_t)std::distance(std::filesystem::directory_iterator{chunksPath}, std::filesystem::directory_iterator{});
 
-    if (nChunks == 0) {
+    if (nChunks == 0)
+    {
         cerr << "No chunk files found in chunks/ directory" << endl;
         return;
     }
 
-    vector<ifstream> chunkFiles = vector<ifstream> (nChunks);
-    for (uint i = 0; i < nChunks; ++i) {
+    vector<ifstream> chunkFiles = vector<ifstream>(nChunks);
+    for (uint i = 0; i < nChunks; ++i)
+    {
         filesystem::path chunkFile = filesystem::path(to_string(i));
         filesystem::path chunkPath = chunksPath / chunkFile;
         chunkFiles[i].open(chunkPath);
     }
 
-    for (uint i = 0; i < nGeneSets; ++i) {
+    for (uint i = 0; i < nGeneSets; ++i)
+    {
         float mean = 0;
         uint k = 0;
         vector<float> rowValues(nSamples);
-        for (uint j = 0; j < nChunks; ++j) {
+        for (uint j = 0; j < nChunks; ++j)
+        {
             getline(chunkFiles[j], line);
             stringstream ssLine(line);
             string valueStr;
@@ -703,7 +732,8 @@ void Gsea::filterResults(uint nFilteredGeneSets, string chunksPathStr, string ou
         }
         mean /= nSamples;
         float variance = 0;
-        for (uint j = 0; j < nSamples; ++j) {
+        for (uint j = 0; j < nSamples; ++j)
+        {
             variance += pow((rowValues[j] - mean), 2);
         }
         variance /= nSamples;
@@ -713,7 +743,8 @@ void Gsea::filterResults(uint nFilteredGeneSets, string chunksPathStr, string ou
 
     sort(geneSetsVar.begin(), geneSetsVar.end(), &Gsea::geneSetPtrComp);
     ofstream variance("var");
-    for (auto x : geneSetsVar) variance << geneSets[x.geneSetPtr].geneSetId << " " << x.value << endl;
+    for (auto x : geneSetsVar)
+        variance << geneSets[x.geneSetPtr].geneSetId << " " << x.value << endl;
 
     unordered_set<string> filteredSets;
     for (uint i = 0; i < nFilteredGeneSets; ++i)
@@ -728,17 +759,21 @@ void Gsea::filterResults(uint nFilteredGeneSets, string chunksPathStr, string ou
     }
     filteredResultsFile << endl;
 
-    for (uint i = 0; i < nChunks; ++i) {
+    for (uint i = 0; i < nChunks; ++i)
+    {
         chunkFiles[i].clear();
         chunkFiles[i].seekg(0, ios::beg);
     }
-    for (uint i = 0; i < nGeneSets; ++i) {
+    for (uint i = 0; i < nGeneSets; ++i)
+    {
         bool filtered = filteredSets.find(geneSets[i].geneSetId) != filteredSets.end();
         if (filtered)
             filteredResultsFile << geneSets[i].geneSetId;
-        for (uint j = 0; j < nChunks; ++j) {
+        for (uint j = 0; j < nChunks; ++j)
+        {
             getline(chunkFiles[j], line);
-            if (filtered) filteredResultsFile << "," << line;
+            if (filtered)
+                filteredResultsFile << "," << line;
         }
         if (filtered)
             filteredResultsFile << endl;

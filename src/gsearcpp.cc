@@ -33,12 +33,12 @@ GseaRcpp::GseaRcpp(NumericMatrix expressionMatrixRcpp,
     vector<string> sampleIds, geneIds;
     sampleIds = as<vector<string>> (colnames(expressionMatrixRcpp));
     geneIds = as<vector<string>> (rownames(expressionMatrixRcpp));
-    double nGenes = expressionMatrixRcpp.ncol();
-    double nSamples = expressionMatrixRcpp.nrow();
-    vector<vector<GeneSample>> expressionMatrix(nSamples, vector<GeneSample>(nGenes));
-    for (uint i = 0; i < nSamples; ++i)
+    double nGenes = expressionMatrixRcpp.nrow();
+    double nSamples = expressionMatrixRcpp.ncol();
+    vector<vector<GeneSample>> expressionMatrix(nGenes, vector<GeneSample>(nSamples));
+    for (uint i = 0; i < nGenes; ++i)
     {
-        for (uint j = 0; j < nGenes; ++j)
+        for (uint j = 0; j < nSamples; ++j)
         {
             expressionMatrix[i][j] = {i, float(expressionMatrixRcpp(i, j))};
         }
@@ -67,7 +67,7 @@ void GseaRcpp::runChunked(const NumericMatrix &countMatrixRcpp)
     {
         for (uint j = 0; j < nGenes; ++j)
         {
-            expressionMatrix[i][j] = {i, float(countMatrixRcpp(i, j))};
+            expressionMatrix[i][j] = {j, float(countMatrixRcpp(i, j))};
         }
     }
 
