@@ -11,6 +11,7 @@ build:
 	R -e 'library("Rcpp");filenames <- c(Sys.glob("$(SRC_DIR)/*.cc"), Sys.glob("$(SRC_DIR)/*.hh"));Rcpp.package.skeleton("$(TARGET)", cpp_files = filenames, code_files = "$(R_DIR)/gseacc.R")'
 	cp DESCRIPTION $(TARGET)
 	cp man/* $(TARGET)/man
+	cp  $(SRC_DIR)/Makevars $(TARGET)/src
 	R CMD build $(TARGET)
 
 install: build
