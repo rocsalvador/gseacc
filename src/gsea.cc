@@ -2,7 +2,6 @@
  * @brief Gsea implementation file */
 
 #include "gsea.hh"
-#include <bits/chrono.h>
 #include <chrono>
 #include <filesystem>
 #include <iostream>
