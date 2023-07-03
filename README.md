@@ -8,6 +8,7 @@
 
 ```bash
 git clone https://github.com/rocsalvador/gseacc/
+cd gseacc
 make install -j
 ```
 
