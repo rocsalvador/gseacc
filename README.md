@@ -67,10 +67,6 @@ Run the executable (`gsea.config` must be in the same folder from where you run 
 
 For the C++ functions documentation check this [page](https://rocsalvador.github.io/).
 
-## About
-
-This package is part of a bachelor's thesis written at NTNU and supervised by Pål Sætrom (pal.satrom@ntnu.no).
-
 ### Author
 
 Roc Salvador Andreazini (roc.salvador@estudiantat.upc.edu) 
